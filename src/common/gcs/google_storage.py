@@ -4,7 +4,7 @@ from typing import List
 import orjson as orjson
 from google.cloud import storage
 
-from src.common.gcs.constants import credentials_path, bucket_name, blob_name
+from src.common.gcs.constants import credentials_path, bucket_name, blob_name, json_file_local_path
 
 
 def load_json_from_gcs() -> List[dict]:
@@ -25,14 +25,14 @@ def load_json_from_gcs() -> List[dict]:
         print(f"Error processing the file: {e}")
 
 
-def get_json_from_local() -> List[dict]:
+def load_json_from_local() -> List[dict]:
     """
     Load JSON data from local file.
     Returns:
         list: List of JSON objects loaded from the specified local file.
     """
     gcp_file = []
-    with open('/Users/mema/Downloads/farmers-protest-tweets-2021-2-4.json', 'r') as file:
+    with open(json_file_local_path, 'r') as file:
         for line in file:
             gcp_file.append(json.loads(line))
     return gcp_file
