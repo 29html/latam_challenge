@@ -17,6 +17,19 @@ def q1_memory(
     """
     Generate a list of the top users by date based on the processed file data.
 
+    This function takes a list of dictionaries containing tweet data and performs the following steps:
+    1. Convert the list of dictionaries into a Pandas DataFrame.
+    2. Extract the 'date' field from the DataFrame and convert it to a datetime object.
+    3. Extract the 'username' field from the 'user' field in the DataFrame.
+    4. Drop the 'user' column from the DataFrame.
+    5. Convert the Pandas DataFrame into a Dask DataFrame for parallel processing.
+    6. Group the Dask DataFrame by 'date' and 'username', and count the occurrences.
+    7. Compute the results of the Dask DataFrame to get a Pandas DataFrame.
+    8. Rename the columns of the Pandas DataFrame.
+    9. Find the top 10 dates with the highest total counts of tweets.
+    10. For each of the top dates, find the username with the highest count of tweets.
+    11. Return a list of tuples, where each tuple contains a date and the corresponding top username.
+
     Parameters:
         gcp_file (List[dict]): A list of dictionaries containing tweet data.
         dry_mode (bool, optional): A flag to indicate whether the function is in dry mode. Defaults to True.
@@ -26,25 +39,28 @@ def q1_memory(
     if not dry_mode:
         print("Processing JSON of tweets")
 
-    df = pd.DataFrame(gcp_file)
-    df['date'] = pd.to_datetime(df['date']).dt.date
-    df['username'] = df['user'].apply(lambda x: x['username'])
-    df.drop(columns=['user'], inplace=True)
+    try:
+        df = pd.DataFrame(gcp_file)
+        df['date'] = pd.to_datetime(df['date']).dt.date
+        df['username'] = df['user'].apply(lambda x: x['username'])
+        df.drop(columns=['user'], inplace=True)
 
-    dask_df = dd.from_pandas(df, npartitions=4)
+        dask_df = dd.from_pandas(df, npartitions=4)
 
-    user_date_counter = dask_df.groupby(['date', 'username']).size().reset_index()
-    user_date_counter = user_date_counter.compute()
+        user_date_counter = dask_df.groupby(['date', 'username']).size().reset_index()
+        user_date_counter = user_date_counter.compute()
 
-    user_date_counter.columns = ['date', 'username', 'counts']
-    top_dates = user_date_counter.groupby('date')['counts'].sum().nlargest(10).index
+        user_date_counter.columns = ['date', 'username', 'counts']
+        top_dates = user_date_counter.groupby('date')['counts'].sum().nlargest(10).index
 
-    top_users_by_date = []
-    for date in top_dates:
-        top_user = user_date_counter.loc[user_date_counter['date'] == date].nlargest(1, 'counts')
-        top_users_by_date.append((date, top_user['username'].iloc[0]))
+        top_users_by_date = []
+        for date in top_dates:
+            top_user = user_date_counter.loc[user_date_counter['date'] == date].nlargest(1, 'counts')
+            top_users_by_date.append((date, top_user['username'].iloc[0]))
 
-    return top_users_by_date
+        return top_users_by_date
+    except Exception as e:
+        print(f"Error processing the file: {str(e)}")
 
 
 def main():
@@ -78,8 +94,8 @@ def main():
     total_processing_time = end_processing_time - start_processing_time
     total_load_time = end_load_file - start_load_time
 
-    q1_memory_partial = partial(q1_memory, gcp_file=gcp_file)
-    mem_usage = memory_usage(q1_memory_partial)
+    memory_partial = partial(q1_memory, gcp_file=gcp_file)
+    mem_usage = memory_usage(memory_partial)
 
     print(
         f"""

@@ -11,7 +11,16 @@ from src.common.gcs.google_storage import load_json_from_gcs
 
 def q2_memory(gcp_file: List[dict], dry_mode: bool = True) -> List[Tuple[str, int]]:
     """
-    Generate a list of the top emojis used based on the processed file data.
+    Process the tweet data to generate a list of the top emojis used.
+
+    This function takes a list of dictionaries containing tweet data and performs the following steps:
+    1. If dry_mode is False, print a message indicating that the JSON data of tweets is being processed.
+    2. Initialize a Counter object to count the occurrences of each emoji.
+    3. Iterate through each tweet in the data and extract the text content.
+    4. Extract emojis from the text content using the emoji library.
+    5. Update the emoji counter with the extracted emojis.
+    6. Find the top 10 emojis with the highest counts.
+    7. Return a list of tuples, where each tuple contains an emoji and its count.
 
     Parameters:
         gcp_file (List[dict]): A list of dictionaries containing tweet data.
@@ -22,17 +31,19 @@ def q2_memory(gcp_file: List[dict], dry_mode: bool = True) -> List[Tuple[str, in
     """
     if not dry_mode:
         print("Processing JSON of tweets")
+    try:
+        emoji_counter = Counter()
 
-    emoji_counter = Counter()
+        for tweet in gcp_file:
+            text = tweet.get("content", "")
+            emojis = [c for c in text if c in emoji.UNICODE_EMOJI["en"]]
+            emoji_counter.update(emojis)
 
-    for tweet in gcp_file:
-        text = tweet.get("content", "")
-        emojis = [c for c in text if c in emoji.UNICODE_EMOJI["en"]]
-        emoji_counter.update(emojis)
+        top_emojis = emoji_counter.most_common(10)
 
-    top_emojis = emoji_counter.most_common(10)
-
-    return top_emojis
+        return top_emojis
+    except Exception as e:
+        print(f"Error processing the file: {str(e)}")
 
 
 def main():
@@ -63,8 +74,8 @@ def main():
     total_processing_time = end_processing_time - start_processing_time
     total_load_time = end_load_file - start_load_time
 
-    q1_memory_partial = partial(q2_memory, gcp_file=gcp_file)
-    mem_usage = memory_usage(q1_memory_partial)
+    memory_partial = partial(q2_memory, gcp_file=gcp_file)
+    mem_usage = memory_usage(memory_partial)
 
     print(
         f"""
