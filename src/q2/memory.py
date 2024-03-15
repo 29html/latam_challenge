@@ -42,6 +42,15 @@ def main():
     2. A function is used to process the data using Dask and Pandas Dataframe.
     3. While each function is executed, the execution time of each one is calculated.
     4. The memory_profiler library is used to measure the memory usage of file processing.
+
+    This method prints information about the execution with the response of the exercise,
+    json download time in seconds, json processing time in seconds and memory used during the process in KB.
+    Example:
+            Top 10 most used emojis:
+            [('🙏', 7286), ('😂', 3072), ('🚜', 2972), ('✊', 2411), ('🌾', 2363)...]
+            Total time downloading data from GCP: 21.28494906425476, sec
+            Total time processing tweets: 1.9600829124450684, sec
+            Memory used during the process: 981.90625, KB
     """
     start_load_time = time.time()
     gcp_file = load_json_from_gcs()

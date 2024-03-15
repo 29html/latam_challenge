@@ -3,7 +3,6 @@ from datetime import datetime
 from functools import partial
 from typing import List, Tuple
 
-import dask.dataframe as dd
 import pandas as pd
 from memory_profiler import memory_usage
 
@@ -27,22 +26,23 @@ def q1_time(
         print("Processing JSON of tweets")
 
     df = pd.DataFrame(gcp_file)
-    df['date'] = pd.to_datetime(df['date']).dt.date
-    df['username'] = df['user'].apply(lambda x: x['username'])
-    df.drop(columns=['user'], inplace=True)
+    df["date"] = pd.to_datetime(df["date"]).dt.date
+    df["username"] = df["user"].apply(lambda x: x["username"])
+    df.drop(columns=["user"], inplace=True)
 
-    dask_df = dd.from_pandas(df, npartitions=4)
-
-    user_date_counter = dask_df.groupby(['date', 'username']).size().reset_index()
-    user_date_counter = user_date_counter.compute()
-
-    user_date_counter.columns = ['date', 'username', 'counts']
-    top_dates = user_date_counter.groupby('date')['counts'].sum().nlargest(10).index
+    user_date_counter = (
+        df.groupby(["date", "username"]).size().reset_index(name="counts")
+    )
+    top_dates = (
+        user_date_counter.groupby("date")["counts"].sum().nlargest(10).index.tolist()
+    )
 
     top_users_by_date = []
     for date in top_dates:
-        top_user = user_date_counter.loc[user_date_counter['date'] == date].nlargest(1, 'counts')
-        top_users_by_date.append((date, top_user['username'].iloc[0]))
+        top_user = user_date_counter.loc[user_date_counter["date"] == date].nlargest(
+            1, "counts"
+        )
+        top_users_by_date.append((date, top_user["username"].iloc[0]))
 
     return top_users_by_date
 
@@ -54,6 +54,15 @@ def main():
     2. A function is used to process the data using Dask and Pandas Dataframe.
     3. While each function is executed, the execution time of each one is calculated.
     4. The memory_profiler library is used to measure the memory usage of file processing.
+
+    This method prints information about the execution with the response of the exercise,
+    json download time in seconds, json processing time in seconds and memory used during the process in KB.
+    Example:
+        Top 10 dates where there are the most tweets:
+        [(datetime.date(2021, 2, 12), 'RanbirS00614606'), (datetime.date(2021, 2, 13), 'MaanDee08215437')...]
+        Total time downloading data from GCP: 3.91988205909729, sec
+        Total time processing tweets: 0.6631908416748047, sec
+        Memory used during the process: 1378.859375, KB
     """
     start_load_time = time.time()
     gcp_file = load_json_from_gcs()
