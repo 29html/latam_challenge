@@ -16,6 +16,17 @@ def q1_time(
     """
     Generate a list of the top users by date based on the processed file data.
 
+    This function takes a list of dictionaries containing tweet data and performs the following steps:
+    1. If dry_mode is False, print a message indicating that the JSON data of tweets is being processed.
+    2. Convert the list of dictionaries into a Pandas DataFrame.
+    3. Extract the 'date' field from the DataFrame and convert it to a datetime object.
+    4. Extract the 'username' field from the 'user' field in the DataFrame.
+    5. Drop the 'user' column from the DataFrame.
+    6. Group the DataFrame by 'date' and 'username', and count the occurrences.
+    7. Find the top 10 dates with the highest total counts of tweets.
+    8. For each of the top dates, find the username with the highest count of tweets.
+    9. Return a list of tuples, where each tuple contains a date and the corresponding top username.
+
     Parameters:
         gcp_file (List[dict]): A list of dictionaries containing tweet data.
         dry_mode (bool, optional): A flag to indicate whether the function is in dry mode. Defaults to True.
@@ -24,27 +35,29 @@ def q1_time(
     """
     if not dry_mode:
         print("Processing JSON of tweets")
+    try:
+        df = pd.DataFrame(gcp_file)
+        df["date"] = pd.to_datetime(df["date"]).dt.date
+        df["username"] = df["user"].apply(lambda x: x["username"])
+        df.drop(columns=["user"], inplace=True)
 
-    df = pd.DataFrame(gcp_file)
-    df["date"] = pd.to_datetime(df["date"]).dt.date
-    df["username"] = df["user"].apply(lambda x: x["username"])
-    df.drop(columns=["user"], inplace=True)
-
-    user_date_counter = (
-        df.groupby(["date", "username"]).size().reset_index(name="counts")
-    )
-    top_dates = (
-        user_date_counter.groupby("date")["counts"].sum().nlargest(10).index.tolist()
-    )
-
-    top_users_by_date = []
-    for date in top_dates:
-        top_user = user_date_counter.loc[user_date_counter["date"] == date].nlargest(
-            1, "counts"
+        user_date_counter = (
+            df.groupby(["date", "username"]).size().reset_index(name="counts")
         )
-        top_users_by_date.append((date, top_user["username"].iloc[0]))
+        top_dates = (
+            user_date_counter.groupby("date")["counts"].sum().nlargest(10).index.tolist()
+        )
 
-    return top_users_by_date
+        top_users_by_date = []
+        for date in top_dates:
+            top_user = user_date_counter.loc[user_date_counter["date"] == date].nlargest(
+                1, "counts"
+            )
+            top_users_by_date.append((date, top_user["username"].iloc[0]))
+
+        return top_users_by_date
+    except Exception as e:
+        print(f"Error processing the file: {str(e)}")
 
 
 def main():
@@ -78,8 +91,8 @@ def main():
     total_processing_time = end_processing_time - start_processing_time
     total_load_time = end_load_file - start_load_time
 
-    q1_memory_partial = partial(q1_time, gcp_file=gcp_file)
-    mem_usage = memory_usage(q1_memory_partial)
+    memory_partial = partial(q1_time, gcp_file=gcp_file)
+    mem_usage = memory_usage(memory_partial)
 
     print(f"""
     Top 10 dates where there are the most tweets: 

@@ -15,11 +15,17 @@ def q2_time(
         dry_mode: bool = True
 ) -> List[Tuple[datetime.date, str]]:
     """
-    Generate a list of the top 10 emojis used in the tweet data.
+    Process the tweet data to generate a list of the top 10 emojis used.
 
-    Parameters:
-        gcp_file (List[dict]): A list of dictionaries containing tweet data.
-        dry_mode (bool, optional): A flag to indicate whether the function is in dry mode. Defaults to True.
+    This function takes a list of dictionaries containing tweet data and performs the following steps:
+    1. If dry_mode is False, print a message indicating that the JSON data of tweets is being processed.
+    2. Initialize an empty dictionary to store emoji counts.
+    3. Iterate through each tweet in the data and extract the text content.
+    4. Extract emojis from the text content using the emoji library and update the emoji counts.
+    5. Convert the dictionary of emoji counts to a pandas DataFrame.
+    6. Find the top 10 emojis with the highest counts using the DataFrame.
+    7. Convert the DataFrame to a list of tuples, where each tuple contains an emoji and its count.
+
 
     Returns:
         List[Tuple[str, int]]: A list of tuples containing the top 10 emojis and their counts.
@@ -27,24 +33,25 @@ def q2_time(
     if not dry_mode:
         print("Processing JSON of tweets")
 
-    emoji_counts = {}
+    try:
+        emoji_counts = {}
 
-    for tweet in gcp_file:
-        text = tweet.get("content", "")
-        emojis = [c for c in text if c in emoji.UNICODE_EMOJI["en"]]
-        for emoji_char in emojis:
-            if emoji_char in emoji_counts:
-                emoji_counts[emoji_char] += 1
-            else:
-                emoji_counts[emoji_char] = 1
+        for tweet in gcp_file:
+            text = tweet.get("content", "")
+            emojis = [c for c in text if c in emoji.UNICODE_EMOJI["en"]]
+            for emoji_char in emojis:
+                if emoji_char in emoji_counts:
+                    emoji_counts[emoji_char] += 1
+                else:
+                    emoji_counts[emoji_char] = 1
 
-    df = pd.DataFrame(emoji_counts.items(), columns=["emoji", "count"])
+        df = pd.DataFrame(emoji_counts.items(), columns=["emoji", "count"])
+        top_emojis = df.nlargest(10, "count")
+        top_emojis_list = top_emojis[["emoji", "count"]].apply(tuple, axis=1).tolist()
 
-    top_emojis = df.nlargest(10, "count")
-
-    top_emojis_list = top_emojis[["emoji", "count"]].apply(tuple, axis=1).tolist()
-
-    return top_emojis_list
+        return top_emojis_list
+    except Exception as e:
+        print(f"Error processing the file: {str(e)}")
 
 
 def main():
@@ -78,8 +85,8 @@ def main():
     total_processing_time = end_processing_time - start_processing_time
     total_load_time = end_load_file - start_load_time
 
-    q1_memory_partial = partial(q2_time, gcp_file=gcp_file)
-    mem_usage = memory_usage(q1_memory_partial)
+    memory_partial = partial(q2_time, gcp_file=gcp_file)
+    mem_usage = memory_usage(memory_partial)
 
     print(
         f"""

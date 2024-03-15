@@ -14,7 +14,14 @@ def q3_time(
         dry_mode: bool = True
 ) -> List[Tuple[datetime.date, str]]:
     """
-    Generate a list of the top 10 users based on the count of mentions (@) in the tweet data.
+    Process the tweet data to generate a list of the top 10 mentioned users.
+
+    This function takes a list of dictionaries containing tweet data and performs the following steps:
+    1. If dry_mode is False, print a message indicating that the JSON data of tweets is being processed.
+    2. Create a DataFrame from the tweet data and extract mentions (words starting with '@') from the tweet content.
+    3. Explode the DataFrame to separate rows for each mention and filter out empty mentions.
+    4. Count the occurrences of each mention and find the top 10 mentioned users.
+    5. Return a list of tuples containing the top 10 mentioned users and their counts.
 
     Parameters:
         gcp_file (List[dict]): A list of dictionaries containing tweet data.
@@ -26,21 +33,19 @@ def q3_time(
     if not dry_mode:
         print("Processing JSON of tweets")
 
-    df = pd.DataFrame(gcp_file)
+    try:
+        df = pd.DataFrame(gcp_file)
+        df['mentions'] = df['content'].str.findall(r'@(\w+)')
+        df_exploded = df.explode('mentions')
+        df_filtered = df_exploded[df_exploded['mentions'] != '']
+        mention_counts = df_filtered['mentions'].value_counts()
+        top_users = mention_counts.head(10)
 
-    df['mentions'] = df['content'].str.findall(r'@(\w+)')
+        top_users_list = [(user, count) for user, count in top_users.items()]
 
-    df_exploded = df.explode('mentions')
-
-    df_filtered = df_exploded[df_exploded['mentions'] != '']
-
-    mention_counts = df_filtered['mentions'].value_counts()
-
-    top_users = mention_counts.head(10)
-
-    top_users_list = [(user, count) for user, count in top_users.items()]
-
-    return top_users_list
+        return top_users_list
+    except Exception as e:
+        print(f"Error processing the file: {str(e)}")
 
 
 def main():
@@ -74,8 +79,8 @@ def main():
     total_processing_time = end_processing_time - start_processing_time
     total_load_time = end_load_file - start_load_time
 
-    q1_memory_partial = partial(q3_time, gcp_file=gcp_file)
-    mem_usage = memory_usage(q1_memory_partial)
+    memory_partial = partial(q3_time, gcp_file=gcp_file)
+    mem_usage = memory_usage(memory_partial)
 
     print(
         f"""

@@ -4,7 +4,7 @@ from typing import List
 import orjson as orjson
 from google.cloud import storage
 
-from src.common.gcs.constants import credentials_path, bucket_name, blob_name, json_file_local_path
+from src.common.gcs.constants import gcs_credentials_path, gcs_bucket_name, gcs_blob_name, json_file_local_path
 
 
 def load_json_from_gcs() -> List[dict]:
@@ -14,9 +14,9 @@ def load_json_from_gcs() -> List[dict]:
         list: List of JSON objects loaded from the specified GCS blob.
     """
     print("Loading JSON from Google Cloud Storage")
-    storage_client = storage.Client.from_service_account_json(credentials_path)
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    storage_client = storage.Client.from_service_account_json(gcs_credentials_path)
+    bucket = storage_client.bucket(gcs_bucket_name)
+    blob = bucket.blob(gcs_blob_name)
 
     try:
         content = blob.download_as_text()

@@ -10,11 +10,15 @@ from src.common.gcs.google_storage import load_json_from_local
 
 def q3_memory(gcp_file: List[dict], dry_mode: bool = True) -> List[Tuple[str, int]]:
     """
-    Generate a list of the top users based on the count of mentions (@) in the processed file data.
+    Process the tweet data to generate a list of the top 10 users mentioned.
 
-    Parameters:
-        gcp_file (List[dict]): A list of dictionaries containing tweet data.
-        dry_mode (bool, optional): A flag to indicate whether the function is in dry mode. Defaults to True.
+    This function takes a list of dictionaries containing tweet data and performs the following steps:
+    1. If dry_mode is False, print a message indicating that the JSON data of tweets is being processed.
+    2. Initialize a Counter object to store user mentions.
+    3. Iterate through each tweet in the data and extract the text content.
+    4. Extract mentions (words starting with '@') from the text content and update the mention counts.
+    5. Find the top 10 users mentioned based on their mention counts using the Counter.
+    6. Return a list of tuples containing the top 10 users mentioned and their counts.
 
     Returns:
         List[Tuple[str, int]]: A list of tuples containing the username and
@@ -23,16 +27,19 @@ def q3_memory(gcp_file: List[dict], dry_mode: bool = True) -> List[Tuple[str, in
     if not dry_mode:
         print("Processing JSON of tweets")
 
-    user_mention_counter = Counter()
+    try:
+        user_mention_counter = Counter()
 
-    for tweet in gcp_file:
-        text = tweet.get("content", "")
-        mentions = [word[1:] for word in text.split() if word.startswith('@')]
-        user_mention_counter.update(mentions)
+        for tweet in gcp_file:
+            text = tweet.get("content", "")
+            mentions = [word[1:] for word in text.split() if word.startswith("@")]
+            user_mention_counter.update(mentions)
 
-    top_users = user_mention_counter.most_common(10)
+        top_users = user_mention_counter.most_common(10)
 
-    return top_users
+        return top_users
+    except Exception as e:
+        print(f"Error processing the file: {str(e)}")
 
 
 def main():
@@ -63,8 +70,8 @@ def main():
     total_processing_time = end_processing_time - start_processing_time
     total_load_time = end_load_file - start_load_time
 
-    q1_memory_partial = partial(q3_memory, gcp_file=gcp_file)
-    mem_usage = memory_usage(q1_memory_partial)
+    memory_partial = partial(q3_memory, gcp_file=gcp_file)
+    mem_usage = memory_usage(memory_partial)
 
     print(
         f"""
