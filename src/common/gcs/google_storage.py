@@ -24,3 +24,15 @@ def load_json_from_gcs() -> List[dict]:
     except Exception as e:
         print(f"Error processing the file: {e}")
 
+
+def get_json_from_local() -> List[dict]:
+    """
+    Load JSON data from local file.
+    Returns:
+        list: List of JSON objects loaded from the specified local file.
+    """
+    gcp_file = []
+    with open('/Users/mema/Downloads/farmers-protest-tweets-2021-2-4.json', 'r') as file:
+        for line in file:
+            gcp_file.append(json.loads(line))
+    return gcp_file
